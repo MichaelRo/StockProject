@@ -1,0 +1,52 @@
+﻿<Window x:Class="StockProject.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:StockProject"
+        mc:Ignorable="d"
+        xmlns:gif="http://wpfanimatedgif.codeplex.com"
+        Title="MainWindow" Height="350" Width="525" FontSize="18">
+    <Grid >
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="10*"/>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="4*"/>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="4*"/>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="4*"/>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="4*"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="5*" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="5*" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="5*" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="5*" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="4*" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <Label Content="Stocks Amount" Grid.Column="1" Grid.Row="0"/>
+        <TextBox Name="SAmount" Grid.Column="3" Grid.Row="0" Grid.ColumnSpan="7" Text="{Binding StocksAmount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+        <Label Content="Days Backward" Grid.Column="1" Grid.Row="2"/>
+        <TextBox Name="SDays" Grid.Column="3" Grid.Row="2" Grid.ColumnSpan="7" Text="{Binding StocksDays, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+        <Label Content="Stocks Features" Grid.Column="1" Grid.Row="4"/>
+        <CheckBox Name="SFeatureOpen" Content="Open" Grid.Column="3" Grid.Row="4" IsChecked="{Binding SOpen, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+        <CheckBox Name="SFeatureHigh" Content="High" Grid.Column="5" Grid.Row="4" IsChecked="{Binding SHigh, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+        <CheckBox Name="SFeatureLow" Content="Low" Grid.Column="7" Grid.Row="4" IsChecked="{Binding SLow, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+        <CheckBox Name="SFeatureClose" Content="Close" Grid.Column="9" Grid.Row="4" IsChecked="{Binding SClose, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+        <Label Content="Number Of Clusters" Grid.Column="1" Grid.Row="6"/>
+        <TextBox Name="SClusters" Grid.Column="3" Grid.Row="6" Grid.ColumnSpan="7" Text="{Binding StocksClusters, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+
+        <Button Name="Submit" Content="Submit" Grid.Column="1" Grid.Row="8" Grid.ColumnSpan="5" Click="Submit_Click"/>
+        <Button Name="Reset" Content="Reset Default" Grid.Column="7" Grid.Row="8" Grid.ColumnSpan="3" Visibility="Visible"  Click="buttonDefaults_Click"/>
+        <Image Name="Loading" gif:ImageBehavior.AnimatedSource="../Images/progress.gif" Grid.Column="7" Visibility="Hidden" Grid.Row="8" Grid.ColumnSpan="3"/>
+    </Grid>
+</Window>
