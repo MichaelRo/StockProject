@@ -70,8 +70,10 @@ public class CanopyMapReduce {
 				Cluster cCurrCenter = currCenterEntry.getKey();
 
 				if (Utils.getDistance(cCurrCenter, key.getCenterVector()) < T1) {
+					String fileName = Utils.CANOPY_OUTPUT_DIRECTORY + Utils.CANOPY_FILE_PREFIX + cCurrCenter.getId();
+					
 					// Reduce centers by "merging the centers vectors" to same file according the center id
-					writeVectorsToCenterFile(context , String.format("StocksProject/Data/canopy%d", cCurrCenter.getId()), cCurrCenter, values);
+					writeVectorsToCenterFile(context , fileName, cCurrCenter, values);
 					
 					isClusterFound = true;
 					break;
@@ -79,8 +81,11 @@ public class CanopyMapReduce {
 			}
 
 			// If no center is close enough to be cluster with the current map iteration
-			if (!isClusterFound)
-				writeVectorsToCenterFile(context , String.format("StocksProject/Data/canopy%d", key.getId()), key, values);
+			if (!isClusterFound) {
+				String fileName = Utils.CANOPY_OUTPUT_DIRECTORY + Utils.CANOPY_FILE_PREFIX + key.getId();
+				
+				writeVectorsToCenterFile(context , fileName, key, values);
+			}
 		}
 		
 		private void writeVectorsToCenterFile(Context context, String fullPath, Cluster cCenterFile, Iterable<Vector> values) throws IOException {
