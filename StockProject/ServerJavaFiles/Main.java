@@ -1,5 +1,6 @@
 package solution;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -44,28 +45,23 @@ public class Main {
 		Configuration conf = new Configuration();
 		FileSystem fs = FileSystem.get(conf);
 		StringBuilder output = new StringBuilder();
+
+		SequenceFile.Reader reader = new SequenceFile.Reader(fs, resultPath, conf);
+		Cluster center = new Cluster();
+		Vector clusterVector = new Vector();
 		
-		if (fs.exists(outputPath))
-			fs.delete(outputPath, true);
-
-		{
-			SequenceFile.Reader reader = new SequenceFile.Reader(fs, resultPath, conf);
-			Cluster center = new Cluster();
-			Vector vector = new Vector();
+		while (reader.next(center, clusterVector)) {
+			if (!clusters.containsKey(center))
+				clusters.put(new Cluster(center), new ArrayList<Vector>());
 			
-			while (reader.next(center, vector)) {
-				if (!clusters.containsKey(center))
-					clusters.put(new Cluster(center), new ArrayList<Vector>());
-				
-				clusters.get(center).add(new Vector(vector));
-			}
-			
-			reader.close();
+			clusters.get(center).add(new Vector(clusterVector));
 		}
-
-		for (Cluster cluster : clusters.keySet()) {
-			for (Vector vector : clusters.get(cluster))
-				output.append(vector.getName());
+		
+		reader.close();
+		
+		for (Entry<Cluster, ArrayList<Vector>> entry : clusters.entrySet()) {
+			for (Vector vector : entry.getValue())
+				output.append(vector.getName()).append(" ");
 			
 			output.deleteCharAt(output.length() - 1);
 			output.append("\n");
@@ -126,10 +122,14 @@ public class Main {
 		job.waitForCompletion(true);
 		
 		// Preparing the data for the next of the program
+		return readCanopyClustersFromHDFS(outputPath);
+	}
+
+	private static HashMap<Cluster, ArrayList<Vector>> readCanopyClustersFromHDFS(Path outputPath) throws IOException, FileNotFoundException {
 		HashMap<Cluster, ArrayList<Vector>> canopyClusters = new HashMap<Cluster, ArrayList<Vector>>();
 
-		conf = new Configuration();
-		fs = FileSystem.get(conf);
+		Configuration conf = new Configuration();
+		FileSystem fs = FileSystem.get(conf);
 		FileStatus[] resultFiles = fs.listStatus(outputPath);
 		
 		for (FileStatus file : resultFiles) {
