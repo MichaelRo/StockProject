@@ -22,6 +22,7 @@ import org.apache.hadoop.mapreduce.lib.partition.HashPartitioner;
 
 public class Main {
 	private static Collection<Integer> _randomIndexesList = new ArrayList<Integer>();
+	private static Collection<Vector> _vectorsList = new ArrayList<Vector>();
 	
 	@SuppressWarnings("deprecation")
 	public static void main(String[] args) throws Exception {
@@ -30,65 +31,14 @@ public class Main {
 		String T1 = args[2].equals("null") ? "0.5" : args[2];
 		Integer k = Integer.decode(args[3].equals("null") ? "5" : args[3]);
 		
-		executeCanopy(inputDir, "StocksProject/Data", T1, k.toString());
-		
-		HashMap<Cluster, ArrayList<Vector>> canopyClusters = new HashMap<Cluster, ArrayList<Vector>>();
-		ArrayList<Vector> allVectors = new ArrayList<Vector>();
-
-		Configuration conf = new Configuration();
-		FileSystem fs = FileSystem.get(conf);
-		FileStatus[] resultFiles = fs.listStatus(new Path("StocksProject/Data/"));
-		
-		for (FileStatus file : resultFiles) {
-			if (file.getPath().toString().indexOf("Data/canopy") != -1) {
-				SequenceFile.Reader reader = new SequenceFile.Reader(fs, file.getPath(), conf);
-				Cluster center = new Cluster();
-				Vector vector = new Vector();
-
-				while (reader.next(center, vector)) {
-					if (!canopyClusters.containsKey(center))
-						canopyClusters.put(new Cluster(center), new ArrayList<Vector>());
-
-					// add the vector to its center in the canopies and to the vectors for k-means
-					canopyClusters.get(center).add(new Vector(vector));
-					allVectors.add(new Vector(vector));
-				}
-				
-				reader.close();
-			}
-		}
-		
-		List<Cluster> kMeansCenters = new ArrayList<Cluster>();
-		List<Cluster> CanopyCenters = new ArrayList<Cluster>();
-		
-		int kForCanopy = 0;
-		int relativeK;
-		int amountOfSpareCenters = getAmountOfSpareCenters(k, canopyClusters, allVectors);
-
-		for (Entry<Cluster, ArrayList<Vector>> entry : canopyClusters.entrySet()) {
-			relativeK = (int) Math.round(((double) entry.getValue().size() / allVectors.size()) * k);
-			relativeK -= (relativeK > amountOfSpareCenters) ? amountOfSpareCenters : 0;
-			
-			if (kForCanopy < k) {
-				// Run as RelativeK size and pick R-K random centers
-				for (int i = 0; i < relativeK; i++) {
-					int n = getRandomIndex(entry.getValue().size());
-					kMeansCenters.add(new Cluster(entry.getValue().get(n)));
-					CanopyCenters.add(entry.getKey());
-				}
-				
-				_randomIndexesList.clear();
-				kForCanopy += relativeK;
-			}
-		} 
-	
-		Path result = executeKMeans(k, canopyClusters, kMeansCenters, CanopyCenters);
+		HashMap<Cluster, ArrayList<Vector>> canopyClusters = executeCanopy(inputDir, "StocksProject/Data", T1, k.toString());
+		Path result = executeKMeans(k, canopyClusters);
 		
 		writeOutput(outputDir,result);
 	}
 	
 	@SuppressWarnings("deprecation")
-	public static void writeOutput(String outputFile, Path ResultPath) throws IOException, InterruptedException, ClassNotFoundException {
+	public static void writeOutput(String outputFile, Path resultPath) throws IOException, InterruptedException, ClassNotFoundException {
 		HashMap<Cluster, ArrayList<Vector>> clusters = new HashMap<Cluster, ArrayList<Vector>>();
 		Path outputPath = new Path(outputFile);
 		Configuration conf = new Configuration();
@@ -99,7 +49,7 @@ public class Main {
 			fs.delete(outputPath, true);
 
 		{
-			SequenceFile.Reader reader = new SequenceFile.Reader(fs, ResultPath, conf);
+			SequenceFile.Reader reader = new SequenceFile.Reader(fs, resultPath, conf);
 			Cluster center = new Cluster();
 			Vector vector = new Vector();
 			
@@ -127,7 +77,7 @@ public class Main {
 	}
 	
 	// This method is just in order to cover out ass up in case that the k in canopy will somehow(round double number) bigger than the k in kMeans
-	public static int getAmountOfSpareCenters(int k, HashMap<Cluster, ArrayList<Vector>> canopyClusters, ArrayList<Vector> vectorsForKMeans) {
+	public static int getAmountOfSpareCenters(int k, HashMap<Cluster, ArrayList<Vector>> canopyClusters, Collection<Vector> vectorsForKMeans) {
 		int tempNumber = 0;
 		int nSumOfK = 0;
 		int nSelfKAdded = 0;
@@ -142,7 +92,7 @@ public class Main {
 		return nSelfKAdded + k - nSumOfK;
 	}
 	 
-	public static void executeCanopy(String inputDir, String outputDir, String T1, String k) throws Exception {
+	public static HashMap<Cluster, ArrayList<Vector>> executeCanopy(String inputDir, String outputDir, String T1, String k) throws Exception {
 		Configuration conf = new Configuration();
 		conf.setBoolean("fs.hdfs.impl.disable.cache", true);
 		conf.set("T1", T1);
@@ -174,15 +124,64 @@ public class Main {
 
 		// Submit the job to the cluster and wait for it to finish
 		job.waitForCompletion(true);
+		
+		// Preparing the data for the next of the program
+		HashMap<Cluster, ArrayList<Vector>> canopyClusters = new HashMap<Cluster, ArrayList<Vector>>();
+
+		conf = new Configuration();
+		fs = FileSystem.get(conf);
+		FileStatus[] resultFiles = fs.listStatus(new Path("StocksProject/Data/"));
+		
+		for (FileStatus file : resultFiles) {
+			if (file.getPath().toString().indexOf("Data/canopy") != -1) {
+				SequenceFile.Reader reader = new SequenceFile.Reader(fs, file.getPath(), conf);
+				Cluster center = new Cluster();
+				Vector vector = new Vector();
+
+				while (reader.next(center, vector)) {
+					if (!canopyClusters.containsKey(center))
+						canopyClusters.put(new Cluster(center), new ArrayList<Vector>());
+
+					canopyClusters.get(center).add(new Vector(vector));
+					_vectorsList.add(new Vector(vector));
+				}
+				
+				reader.close();
+			}
+		}
+		
+		return canopyClusters;
 	}
 	
 	@SuppressWarnings("deprecation")
-	public static Path executeKMeans(int k, HashMap<Cluster, ArrayList<Vector>> canopyClusters, List<Cluster> kMeansCenters, List<Cluster> CanopyCenters) throws IOException, InterruptedException, ClassNotFoundException {
+	public static Path executeKMeans(int k, HashMap<Cluster, ArrayList<Vector>> canopyClusters) throws IOException, InterruptedException, ClassNotFoundException {
 		int iterationIndex = 0;
 		long amountOfFinishedCenters = 0;
 		Path centers = new Path("StocksProject/clustering/data/centers.txt");
 		Path in = new Path("StocksProject/clustering/canopyin");
 		Path out = new Path("StocksProject/clustering/canopyout");
+		List<Cluster> CanopyCenters = new ArrayList(canopyClusters.keySet());
+		List<Cluster> kMeansCenters = new ArrayList<Cluster>();
+		
+		int kForCanopy = 0;
+		int relativeK;
+		int amountOfSpareCenters = getAmountOfSpareCenters(k, canopyClusters, _vectorsList);
+
+		for (Entry<Cluster, ArrayList<Vector>> entry : canopyClusters.entrySet()) {
+			relativeK = (int) Math.round(((double) entry.getValue().size() / _vectorsList.size()) * k);
+			relativeK -= (relativeK > amountOfSpareCenters) ? amountOfSpareCenters : 0;
+			
+			if (kForCanopy < k) {
+				// Run as RelativeK size and pick R-K random centers
+				for (int i = 0; i < relativeK; i++) {
+					int n = getRandomIndex(entry.getValue().size());
+					kMeansCenters.add(new Cluster(entry.getValue().get(n)));
+				}
+				
+				_randomIndexesList.clear();
+				kForCanopy += relativeK;
+			}
+		} 
 		
 		Configuration conf = new Configuration();
 		conf.set("K", k + "");
