@@ -1,6 +1,11 @@
 package solution;
 
 public class Utils {
+	public static final String MAIN_DIRECTORY = "StocksProject/";
+	public static final String CANOPY_OUTPUT_DIRECTORY = MAIN_DIRECTORY + "Data/";
+	public static final String CANOPY_FILE_PREFIX = "Canopy";
+	public static final String KMEANS_OUTPUT_DIRECTORY = MAIN_DIRECTORY + "Clustering/";
+	
 	public static final double getDistance(Cluster center, Vector vector) {
 		double sum = 0;
 		
