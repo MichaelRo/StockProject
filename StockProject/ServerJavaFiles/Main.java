@@ -31,7 +31,7 @@ public class Main {
 		String T1 = args[2].equals("null") ? "0.5" : args[2];
 		Integer k = Integer.decode(args[3].equals("null") ? "5" : args[3]);
 		
-		HashMap<Cluster, ArrayList<Vector>> canopyClusters = executeCanopy(inputDir, "StocksProject/Data", T1, k.toString());
+		HashMap<Cluster, ArrayList<Vector>> canopyClusters = executeCanopy(inputDir, T1, k.toString());
 		Path result = executeKMeans(k, canopyClusters);
 		
 		writeOutput(outputDir,result);
@@ -92,7 +92,7 @@ public class Main {
 		return nSelfKAdded + k - nSumOfK;
 	}
 	 
-	public static HashMap<Cluster, ArrayList<Vector>> executeCanopy(String inputDir, String outputDir, String T1, String k) throws Exception {
+	public static HashMap<Cluster, ArrayList<Vector>> executeCanopy(String inputDir, String T1, String k) throws Exception {
 		Configuration conf = new Configuration();
 		conf.setBoolean("fs.hdfs.impl.disable.cache", true);
 		conf.set("T1", T1);
@@ -100,7 +100,7 @@ public class Main {
 		
 		FileSystem fs = FileSystem.get(conf);
 		Path inputPath = new Path(inputDir);
-		Path outputPath = new Path(outputDir);
+		Path outputPath = new Path(Utils.CANOPY_OUTPUT_DIRECTORY);
 
 		if (fs.exists(outputPath)) 
 			fs.delete(outputPath, true);
@@ -130,10 +130,10 @@ public class Main {
 
 		conf = new Configuration();
 		fs = FileSystem.get(conf);
-		FileStatus[] resultFiles = fs.listStatus(new Path("StocksProject/Data/"));
+		FileStatus[] resultFiles = fs.listStatus(outputPath);
 		
 		for (FileStatus file : resultFiles) {
-			if (file.getPath().toString().indexOf("Data/canopy") != -1) {
+			if (file.getPath().toString().indexOf(Utils.CANOPY_OUTPUT_DIRECTORY + Utils.CANOPY_FILE_PREFIX) != -1) {
 				SequenceFile.Reader reader = new SequenceFile.Reader(fs, file.getPath(), conf);
 				Cluster center = new Cluster();
 				Vector vector = new Vector();
@@ -155,8 +155,6 @@ public class Main {
 	
 	@SuppressWarnings("deprecation")
 	public static Path executeKMeans(int k, HashMap<Cluster, ArrayList<Vector>> canopyClusters) throws IOException, InterruptedException, ClassNotFoundException {
-		int iterationIndex = 0;
-		long amountOfFinishedCenters = 0;
 		Path centers = new Path("StocksProject/clustering/data/centers.txt");
 		Path in = new Path("StocksProject/clustering/canopyin");
 		Path out = new Path("StocksProject/clustering/canopyout");
@@ -211,6 +209,9 @@ public class Main {
 		
 		centersWriter.close();
 		dataWriter.close();
+		
+		int iterationIndex = 0;
+		long amountOfFinishedCenters = 0;
 		
 		do {
 			if (fs.exists(out)) 
