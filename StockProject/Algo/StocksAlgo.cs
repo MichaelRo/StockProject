@@ -244,8 +244,8 @@ namespace StockProject
 
             connectionManager.executeCommand("jar -cvf " + ServerDirectoryName + "/stocksRed.jar -C " + ServerClassesDirectoryName + "/ .");
 
-            connectionManager.executeCommand("hadoop jar " + ServerDirectoryName + 
-                "/stocksRed.jar solution.FinalProj " + ServerInputDir + " " + ServerDirectoryName + "/output.txt "
+            connectionManager.executeCommand("hadoop jar " + "/home/training/" + ServerDirectoryName + 
+                "/stocksRed.jar solution.Main " + ServerInputDir + " " + ServerDirectoryName + "/output.txt "
                                     + props.GetStocksDays() * featersCount * 0.4 + " " + props.GetStocksClusters());
 
         }
